@@ -29,6 +29,7 @@ func TestGenerate(t *testing.T) {
 	u := generator.New()
 	log.Println(u)
 	log.Println(u.UuidStr(generator))
+	log.Println(u.ToString())
 
 	// Parse
 	parsed, e := generator.Parse("T5LvxuSpeC0g2VglOnOACOzuFP0wmH04l49fQmSWR5+kpIXvGXzO0g==")

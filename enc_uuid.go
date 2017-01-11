@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/nu7hatch/gouuid"
 	"io"
-	"log"
 	"strings"
 )
 
@@ -192,7 +191,6 @@ func (e *EncUuidGenerator) newFromUuid(u *uuid.UUID, additionalData string) *Enc
 	if encErr != nil {
 		panic(encErr)
 	}
-	log.Printf("new %v", enc)
 	return e.fromBytes(enc)
 }
 
