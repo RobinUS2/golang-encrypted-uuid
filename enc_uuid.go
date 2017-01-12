@@ -13,7 +13,8 @@ import (
 )
 
 type EncUuidGenerator struct {
-	secret           []byte
+	// secret           []byte
+	block            *cipher.Block
 	gracefulFallback bool
 }
 
@@ -111,18 +112,18 @@ func (e *EncUuidGenerator) Encrypt(text []byte) (string, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
+func (e *EncUuidGenerator) getBlock() *cipher.Block {
+	return e.block
+}
+
 func (e *EncUuidGenerator) encrypt(text []byte) ([]byte, error) {
-	block, err := aes.NewCipher(e.secret)
-	if err != nil {
-		return nil, err
-	}
 	b := base64.StdEncoding.EncodeToString(text)
 	ciphertext := make([]byte, aes.BlockSize+len(b))
 	iv := ciphertext[:aes.BlockSize]
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 		return nil, err
 	}
-	cfb := cipher.NewCFBEncrypter(block, iv)
+	cfb := cipher.NewCFBEncrypter(*e.getBlock(), iv)
 	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
 	return ciphertext, nil
 }
@@ -136,16 +137,12 @@ func (e *EncUuidGenerator) Decrypt(text string) ([]byte, error) {
 }
 
 func (e *EncUuidGenerator) decrypt(text []byte) ([]byte, error) {
-	block, err := aes.NewCipher(e.secret)
-	if err != nil {
-		return nil, err
-	}
 	if len(text) < aes.BlockSize {
 		return nil, errors.New("ciphertext too short")
 	}
 	iv := text[:aes.BlockSize]
 	text = text[aes.BlockSize:]
-	cfb := cipher.NewCFBDecrypter(block, iv)
+	cfb := cipher.NewCFBDecrypter(*e.getBlock(), iv)
 	cfb.XORKeyStream(text, text)
 	data, err := base64.StdEncoding.DecodeString(string(text))
 	if err != nil {
@@ -211,8 +208,13 @@ func New(secret []byte, gracefulFallback bool) *EncUuidGenerator {
 	if secretLen != 16 && secretLen != 24 && secretLen != 32 {
 		panic("Secret must be 16, 24 or 32 bytes long")
 	}
+	block, err := aes.NewCipher(secret)
+	if err != nil {
+		panic(err)
+	}
 	return &EncUuidGenerator{
-		secret:           secret,
+		// secret:           secret,
 		gracefulFallback: gracefulFallback,
+		block:            &block,
 	}
 }
