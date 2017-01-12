@@ -4,6 +4,7 @@ import (
 	"../golang-encrypted-uuid"
 	"fmt"
 	"log"
+	"sync"
 	"testing"
 )
 
@@ -93,4 +94,28 @@ func TestGenerate(t *testing.T) {
 	if unecryptedUbsNnonGrace != nil || eUnecryptedBsNonGrace == nil {
 		panic("Should not be able to read bullshit in non-grace mode")
 	}
+
+	// Test parallel, use the same generator in multiple go routines many times concurrently
+	var wg sync.WaitGroup
+	// var j int // enable this line to validate detection of races
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func() {
+			for n := 0; n < 10000; n++ {
+				//j++ // enable this line to validate detection of races
+				u := generator.New()
+				str := u.ToString()
+				parsed, e := generator.Parse(str)
+				if e != nil {
+					panic("Failed parse")
+				}
+				_, e2 := parsed.UuidStr(generator)
+				if e2 != nil {
+					panic("Failed to uuid")
+				}
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 }
